@@ -8,11 +8,12 @@ int[] colors = new int [nbPlayers*3];
 boolean isFixedCell = false;
 int turn = 1;
 int[] timeStuck = new int [nbPlayers];
-
+int whichPlayerInHole = 100;
+int whichPlayerInPrison = 100;
+boolean isPrisonOccupied = false;
 
 int diceThrow (int playerNb) {
-
-
+  
   int dice1 = (int)random(6)+1;
   int dice2 = (int)random(6)+1;
 
@@ -35,13 +36,10 @@ int diceThrow (int playerNb) {
 
 
 void play(int playerNb) {
-
   diceResult[playerNb] = diceThrow(playerNb);
-  
   if (!isFixedCell) {
     position[playerNb] += diceResult[playerNb];
   }
-  
   verifyGooseCells(playerNb);
   if (position[playerTurn] == 63) {
     noLoop();
@@ -58,12 +56,11 @@ void draw() {
 void keyPressed() {
   initBoardVisual();
   verifyIsLastPlayer();
-  timeStuck[playerTurn]--;/////////////////////////////////////////////////////////////////////////////////////
-  //delay(1000/nbPlayers);
+  timeStuck[playerTurn]--;
   
   verifyIsLastPlayer();
   
-  if (timeStuck[playerTurn] <= 0) {
+  if (timeStuck[playerTurn] <= 0 && whichPlayerInHole != playerTurn && whichPlayerInPrison != playerTurn) {
     play(playerTurn);
   } else {
     refreshRect(); 
@@ -96,21 +93,29 @@ void verifyGooseCells(int playerNb) {
 
 void verifyOtherPositions(int playerNb) {
   println(position[playerNb]);
-  if (position[playerNb] == 19) {
+  if(position[playerNb] == 3){
+    whichPlayerInHole = playerNb;
+  } else if (position[playerNb] == 19) {
+    
     coloredRect(playerNb);
     whiteRect(playerNb);
     if (timeStuck[playerNb] < 0) {
       timeStuck[playerNb] = 2;
-    }    
-  } else if (position[playerNb] == 42) {
+    }   
     
+  } else if (position[playerNb] == 42) {
     position[playerNb] = 30;
-    refreshRect();
+  } else if (position[playerNb] == 52) {
+    
+    if (!isPrisonOccupied) {
+      whichPlayerInPrison = playerNb;
+      isPrisonOccupied = !isPrisonOccupied;
+    } else {
+      whichPlayerInPrison = 100;
+    }
+    
   } else if (position[playerNb] == 58) {
     position[playerNb] = 0;
-    refreshRect();
-    //coloredRect(playerNb);
-    //whiteRect(playerNb);
   }
   println(position[playerNb]);
 }
@@ -160,8 +165,6 @@ void initBoardVisual() {
   fill(0, 157, 255);
   text("Tête de mort ", 1100, 400);
   rect(100+rectLength*58, 215, rectLength, nbPlayers*20);
-  
-  
 }
 
 void colorInit() {
