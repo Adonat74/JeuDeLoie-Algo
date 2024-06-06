@@ -18,8 +18,6 @@ void keyPressed() {
   checkIsLastPlayer();
   playersTimeStuck[whichPlayerTurn]--;
   
-  checkIsLastPlayer();
-  
   if (playersTimeStuck[whichPlayerTurn] <= 0 && whichPlayerInHole != whichPlayerTurn && whichPlayerInPrison != whichPlayerTurn) {
     play();
   } else {
@@ -51,7 +49,7 @@ int diceThrow () {
   return checkDicesResult(dice1, dice2);
 }
 
-// check si le joueur est le dernier et repasse au premier
+// check si le joueur est le dernier on repasse au premier
 void checkIsLastPlayer() {
   if (whichPlayerTurn >= nbPlayers) {
     turn++;
