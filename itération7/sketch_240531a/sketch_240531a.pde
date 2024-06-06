@@ -1,32 +1,77 @@
-int nbPlayers = 6;
-int position[] = new int [nbPlayers];
-int diceResult[] = new int [nbPlayers];
-int rectLength = 20;
+int nbPlayers = 6;//Nombre de joueurs
+int playersPositions[] = new int [nbPlayers];
+int playersDiceResult[] = new int [nbPlayers];
+int cellWidth = 20;
 int[] gooseCells = {9, 18, 27, 36, 45, 54};
-int playerTurn = 0;
-int[] colors = new int [nbPlayers*3];
+int whichPlayerTurn = 0;
+int[] playersColors = new int [nbPlayers*3];
 boolean isFixedCell = false;
 int turn = 1;
-int[] timeStuck = new int [nbPlayers];
+int[] playersTimeStuck = new int [nbPlayers];
 int whichPlayerInHole = 100;
 int whichPlayerInPrison = 100;
 boolean isPrisonOccupied = false;
 
-int diceThrow (int playerNb) {
+// Un joueur avance par touche pressée
+void keyPressed() {
+  initBoardVisual();
+  checkIsLastPlayer();
+  playersTimeStuck[whichPlayerTurn]--;
   
+  checkIsLastPlayer();
+  
+  if (playersTimeStuck[whichPlayerTurn] <= 0 && whichPlayerInHole != whichPlayerTurn && whichPlayerInPrison != whichPlayerTurn) {
+    play();
+  } else {
+    refreshRect(); 
+  }
+  whichPlayerTurn++;
+}
+
+void play() {
+  playersDiceResult[whichPlayerTurn] = diceThrow();
+  if (!isFixedCell) {
+    playersPositions[whichPlayerTurn] += playersDiceResult[whichPlayerTurn];
+  }
+  checkGooseCells();
+  if (playersPositions[whichPlayerTurn] == 63) {
+    noLoop();
+    scoreFinalDisplay();
+  } else if (playersPositions[whichPlayerTurn] > 63) {
+    playersPositions[whichPlayerTurn] = 63 - (playersPositions[whichPlayerTurn] - 63);
+  }
+  checkOtherPositions();
+  refreshRect();
+}
+
+//simule un lancé de dés
+int diceThrow () {
   int dice1 = (int)random(6)+1;
   int dice2 = (int)random(6)+1;
+  return checkDicesResult(dice1, dice2);
+}
 
+// check si le joueur est le dernier et repasse au premier
+void checkIsLastPlayer() {
+  if (whichPlayerTurn >= nbPlayers) {
+    turn++;
+    whichPlayerTurn = 0;
+  }
+}
+
+// check le résultat des dés pour les règles spéciales
+int checkDicesResult (int dice1, int dice2) {
+  
   if (turn == 1 && (dice1 == 3 || dice2 == 3) && (dice1 == 6 || dice2 == 6)) {
-    position[playerNb] = 26;
+    playersPositions[whichPlayerTurn] = 26;
     isFixedCell = true;
     return dice1+dice2;
   } else if (turn == 1 && (dice1 == 4 || dice2 == 4) && (dice1 == 5 || dice2 == 5)) {
-    position[playerNb] = 53;
+    playersPositions[whichPlayerTurn] = 53;
     isFixedCell = true;
     return dice1+dice2;
   } else if (turn == 1 && dice1+dice2 == 6) {
-    position[playerNb] = 12;
+    playersPositions[whichPlayerTurn] = 12;
     isFixedCell = true;
     return dice1+dice2;
   }
@@ -34,157 +79,122 @@ int diceThrow (int playerNb) {
   return dice1+dice2;
 }
 
-
-void play(int playerNb) {
-  diceResult[playerNb] = diceThrow(playerNb);
-  if (!isFixedCell) {
-    position[playerNb] += diceResult[playerNb];
-  }
-  verifyGooseCells(playerNb);
-  if (position[playerTurn] == 63) {
-    noLoop();
-    scoreFinalDisplay(playerTurn);
-  } else if (position[playerNb] > 63) {
-    position[playerTurn] = 63 - (position[playerTurn] - 63);
-  }
-  verifyOtherPositions(playerTurn);
-  refreshRect();
-}
-
-void draw() {
-}
-void keyPressed() {
-  initBoardVisual();
-  verifyIsLastPlayer();
-  timeStuck[playerTurn]--;
-  
-  verifyIsLastPlayer();
-  
-  if (timeStuck[playerTurn] <= 0 && whichPlayerInHole != playerTurn && whichPlayerInPrison != playerTurn) {
-    play(playerTurn);
-  } else {
-    refreshRect(); 
-  }
-  playerTurn++;
-  
-}
-
-void refreshRect() {
-  for (int i = 0; i < nbPlayers; i++) {
-    scoreText(i);
-    coloredRect(i);
-  }
-}
-
-void verifyIsLastPlayer() {
-  if (playerTurn >= nbPlayers) {
-    turn++;
-    playerTurn = 0;
-  }
-}
-
-void verifyGooseCells(int playerNb) {
+void checkGooseCells() {
   for (int i = 0; i < gooseCells.length; i++) {
-    if (position[playerNb] == gooseCells[i]) {
-      position[playerNb] += diceResult[playerNb];
+    if (playersPositions[whichPlayerTurn] == gooseCells[i]) {
+      playersPositions[whichPlayerTurn] += playersDiceResult[whichPlayerTurn];
     }
   }
 }
 
-void verifyOtherPositions(int playerNb) {
-  println(position[playerNb]);
-  if(position[playerNb] == 3){
-    whichPlayerInHole = playerNb;
-  } else if (position[playerNb] == 19) {
+void checkOtherPositions() {
+  
+  if(playersPositions[whichPlayerTurn] == 3){
+    whichPlayerInHole = whichPlayerTurn;
+  } else if (playersPositions[whichPlayerTurn] == 19) {
     
-    coloredRect(playerNb);
-    whiteRect(playerNb);
-    if (timeStuck[playerNb] < 0) {
-      timeStuck[playerNb] = 2;
-    }   
+      coloredRect(whichPlayerTurn);
+      whiteRect();
+      if (playersTimeStuck[whichPlayerTurn] < 0) {
+        playersTimeStuck[whichPlayerTurn] = 2;
+      }   
     
-  } else if (position[playerNb] == 42) {
-    position[playerNb] = 30;
-  } else if (position[playerNb] == 52) {
+  } else if (playersPositions[whichPlayerTurn] == 42) {
+    playersPositions[whichPlayerTurn] = 30;
+  } else if (playersPositions[whichPlayerTurn] == 52) {
     
-    if (!isPrisonOccupied) {
-      whichPlayerInPrison = playerNb;
-      isPrisonOccupied = !isPrisonOccupied;
-    } else {
-      whichPlayerInPrison = 100;
-    }
+      if (!isPrisonOccupied) {
+        whichPlayerInPrison = whichPlayerTurn;
+        isPrisonOccupied = !isPrisonOccupied;
+      } else {
+        whichPlayerInPrison = 100;
+      }
     
-  } else if (position[playerNb] == 58) {
-    position[playerNb] = 0;
+  } else if (playersPositions[whichPlayerTurn] == 58) {
+    playersPositions[whichPlayerTurn] = 0;
   }
-  println(position[playerNb]);
 }
 
-
-void scoreText(int playerNb) {
-  fill(colors[playerNb*3], colors[playerNb*3+1], colors[playerNb*3+2]);
-  textSize(20);
-  text("position = " + position[playerNb], 100+(50*(playerNb*3)), 50);
-  text("dice result = " + diceResult[playerNb], 100+(50*(playerNb*3)), 100);
+//////////////////////////////////////////PARTIE RENDU VISUELLE///////////////////////////////////////////////////////
+void scoreTextDisplay(int playerNb) {
+  fill(playersColors[playerNb*3], playersColors[playerNb*3+1], playersColors[playerNb*3+2]);
+  textSize(25);
+  text("position = " + playersPositions[playerNb], 100+(50*(playerNb*4)), 50);
+  text("dice result = " + playersDiceResult[playerNb], 100+(50*(playerNb*4)), 100);
 }
 
-void scoreFinalDisplay(int playerNb) {
-  coloredRect(playerNb);
-  fill(colors[playerNb*3], colors[playerNb*3+1], colors[playerNb*3+2]);
-  textSize(20);
-  text("position = " + position[playerNb], 100+(50*(playerNb*3)), 50);
-  text("dice result = " + diceResult[playerNb], 100+(50*(playerNb*3)), 100);
+void scoreFinalDisplay() {
+  coloredRect(whichPlayerTurn);
+  fill(playersColors[whichPlayerTurn*3], playersColors[whichPlayerTurn*3+1], playersColors[whichPlayerTurn*3+2]);
+  textSize(25);
+  text("position = " + playersPositions[whichPlayerTurn], 100+(50*(whichPlayerTurn*4)), 50);
+  text("dice result = " + playersDiceResult[whichPlayerTurn], 100+(50*(whichPlayerTurn*4)), 100);
 }
 
 void initBoardVisual() {
   background(136, 0, 170);
   for (int i = 0; i < 64; i++) {
     fill(255);
-    rect(100+rectLength*i, 215, rectLength, nbPlayers*20);
+    rect(100+cellWidth*i, 215, cellWidth, nbPlayers*20);
     textSize(16);
-    text(i, 102+rectLength*i, 210);
+    text(i, 102+cellWidth*i, 210);
   }
   for (int i = 0; i < gooseCells.length; i++) {
     fill(0, 135, 136);
     textSize(30);
     text("Oies ", 100, 400);
-    rect(100+rectLength*gooseCells[i], 215, rectLength, nbPlayers*20);
+    rect(100+cellWidth*gooseCells[i], 215, cellWidth, nbPlayers*20);
   }
   fill(132, 254, 2);
   text("Puits ", 300, 400);
-  rect(100+rectLength*3, 215, rectLength, nbPlayers*20);
+  rect(100+cellWidth*3, 215, cellWidth, nbPlayers*20);
   fill(0);
   text("Hôtel ", 500, 400);
-  rect(100+rectLength*19, 215, rectLength, nbPlayers*20);
+  rect(100+cellWidth*19, 215, cellWidth, nbPlayers*20);
   fill(255, 157, 30);
   text("Labyrinthe ", 700, 400);
-  rect(100+rectLength*42, 215, rectLength, nbPlayers*20);
+  rect(100+cellWidth*42, 215, cellWidth, nbPlayers*20);
   fill(253, 8, 255);
   text("Prison ", 900, 400);
-  rect(100+rectLength*52, 215, rectLength, nbPlayers*20);
+  rect(100+cellWidth*52, 215, cellWidth, nbPlayers*20);
   fill(0, 157, 255);
   text("Tête de mort ", 1100, 400);
-  rect(100+rectLength*58, 215, rectLength, nbPlayers*20);
+  rect(100+cellWidth*58, 215, cellWidth, nbPlayers*20);
 }
 
-void colorInit() {
-  for (int i = 0; i < colors.length; i++) {
-    colors[i] = 100 + (int)random(155);
+void randomColorInit() {
+  for (int i = 0; i < playersColors.length; i++) {
+    playersColors[i] = 100 + (int)random(155);
   }
 }
 
-void whiteRect(int playerNb) {
+void refreshRect() {
+  for (int i = 0; i < nbPlayers; i++) {
+    scoreTextDisplay(i);
+    coloredRect(i);
+  }
+}
+
+void whiteRect() {
   fill(255);
-  rect(100+rectLength*position[playerNb], 215+(playerNb*20), rectLength, 20);
+  rect(100+cellWidth*playersPositions[whichPlayerTurn], 215+(whichPlayerTurn*20), cellWidth, 20);
 }
 
 void coloredRect(int playerNb) {
-  fill(colors[playerNb*3], colors[playerNb*3+1], colors[playerNb*3+2]);
-  rect(100+rectLength*position[playerNb], 215+(playerNb*20), rectLength, 20);
+  fill(playersColors[playerNb*3], playersColors[playerNb*3+1], playersColors[playerNb*3+2]);
+  rect(100+cellWidth*playersPositions[playerNb], 215+(playerNb*20), cellWidth, 20);
+}
+
+void pressToPlayText() {
+  fill(255);
+  text("Appuyez sur n'importe quelle touche pour jouer.", 450, 100);
 }
 
 void setup() {
-  colorInit();
+  randomColorInit();
   initBoardVisual();
+  pressToPlayText();
   size(1500, 500);
+}
+void draw() {
 }
